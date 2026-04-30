@@ -1,0 +1,33 @@
+{
+  "productName": "Google Chat",
+  "version": "0.1.0",
+  "identifier": "com.google-chat-wrapper.app",
+  "build": {
+    "frontendDist": "./src-frontend",
+    "devUrl": "https://chat.google.com"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true,
+      "tooltip": "Google Chat"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {}
+}

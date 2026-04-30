@@ -1,0 +1,15 @@
+[package]
+name = "google-chat-wrapper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-notification = "2"
+tauri-plugin-shell = "2"
+image = { version = "0.25", default-features = false, features = ["png"] }
+imageproc = "0.25"
+ab_glyph = "0.2"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
