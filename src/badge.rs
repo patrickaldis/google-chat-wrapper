@@ -48,7 +48,7 @@ fn draw_badge(icon: &mut RgbaImage, count: u32) {
     // Scale the font relative to icon size. For a 128px icon, a scale of ~48
     // gives a nicely readable single-digit number.
     let icon_size = icon.width() as f32;
-    let scale = PxScale::from(icon_size * 0.38);
+    let scale = PxScale::from(icon_size * 0.65);
 
     let (text_w, text_h) = text_size(scale, &font, &label);
 

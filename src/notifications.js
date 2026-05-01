@@ -5,11 +5,16 @@
 // 2. Detect unread messages and forward the count to the Rust backend so the
 //    tray icon badge can be updated.
 //
-// Google Chat does NOT put an unread count in document.title. Instead it:
-//   - Swaps the favicon URL to a "notif" variant when there are unreads.
-//   - Shows per-conversation unread badges in the sidebar DOM.
+// Unread detection first checks the page title for a "Google Chat (N)"
+// pattern. If --badge-attr is provided via CLI, it also walks role="listitem"
+// elements for numeric badge spans (identified by the given attribute),
+// skipping Spaces nav duplicates (identified by role="link" descendants).
 //
-// We poll both signals every second and send the result to Rust via IPC.
+// The badge span attribute is set via window.__BADGE_ATTR (injected by Rust
+// from the --badge-attr CLI flag). When not provided, only the page title
+// signal is used.
+//
+// We poll every second and send the result to Rust via IPC.
 
 (function() {
     if (window.__notificationOverrideInstalled) return;
@@ -39,47 +44,40 @@
 
     // --- Unread count detection ------------------------------------------------
 
-    // Read the total unread count from the sidebar DOM.
-    //
-    // Google Chat renders per-conversation unread badges as:
-    //   <span class="SaMfhe ...">N</span>
-    // inside each conversation list item. We sum all of these.
-    //
-    // Conversations scrolled out of view are summarised in a separate element:
-    //   <div class="i5r4Nb">N more unread</div>
-    // We parse the number from that text and add it to the total.
-    //
-    // These class names are obfuscated and may change when Google updates Chat.
-    function getUnreadCountFromDOM() {
-        var count = 0;
+    // The HTML attribute used to locate badge spans, if provided via
+    // --badge-attr CLI flag.  When absent, only the page title is used.
+    var BADGE_ATTR = window.__BADGE_ATTR || null;
 
-        // Per-conversation badges
-        var badges = document.body.querySelectorAll('span.SaMfhe');
-        badges.forEach(function(span) {
-            var n = parseInt(span.textContent, 10);
-            if (n > 0) count += n;
+    function getUnreadCount() {
+        // Try the page title first — most stable signal.
+        var titleMatch = document.title.match(/\((\d+)\)/);
+        if (titleMatch) return parseInt(titleMatch[1], 10);
+
+        // If no badge attribute was configured, we can't scrape the DOM.
+        if (!BADGE_ATTR) return 0;
+
+        // Walk all role="listitem" elements looking for numeric badge spans.
+        var count = 0;
+        var listItems = document.body.querySelectorAll('[role="listitem"]');
+
+        listItems.forEach(function(item) {
+            // Skip Spaces nav entries — they contain a role="link" wrapper
+            // and duplicate the conversation list badges.
+            if (item.querySelector('[role="link"]')) return;
+
+            // Look for spans with the configured attribute that contain a
+            // bare integer (the unread badge).
+            var spans = item.querySelectorAll('span[' + BADGE_ATTR + '="true"]');
+            for (var i = 0; i < spans.length; i++) {
+                var text = spans[i].textContent.trim();
+                if (/^\d{1,3}$/.test(text)) {
+                    count += parseInt(text, 10);
+                    break; // one badge per listitem
+                }
+            }
         });
 
-        // "N more unread" summary for off-screen conversations
-        var moreUnread = document.body.querySelector('div.i5r4Nb');
-        if (moreUnread) {
-            var match = moreUnread.textContent.match(/(\d+)/);
-            if (match) count += parseInt(match[1], 10);
-        }
-
         return count;
-    }
-
-    // Check the favicon for a binary "has unreads" signal. Google Chat swaps
-    // the favicon href to a URL containing "notif" when there are unread
-    // messages.
-    function faviconIndicatesUnread() {
-        var link = document.querySelector(
-            'link[rel="shortcut icon"],' +
-            'link[rel="icon"]'
-        );
-        if (!link || !link.href) return false;
-        return /notif/.test(link.href);
     }
 
     var lastCount = -1;
@@ -87,10 +85,7 @@
     function pollUnreadCount() {
         if (!window.__TAURI__ || !window.__TAURI__.core) return;
 
-        // Use the numeric DOM count. The favicon is only a binary signal (unreads
-        // exist or not) so it can't provide an actual number -- don't show a
-        // misleading count when the DOM badges aren't available yet.
-        var count = getUnreadCountFromDOM();
+        var count = getUnreadCount();
 
         // Only invoke the Rust command when the count actually changes.
         if (count !== lastCount) {
