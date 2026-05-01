@@ -35,6 +35,7 @@ pub fn create(app: &tauri::App, badge_attr: Option<&str>) -> Result<(), Box<dyn 
         .min_inner_size(800.0, 600.0)
         .resizable(true)
         .decorations(false)
+        .zoom_hotkeys_enabled(true)
         .on_page_load(move |webview, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 if let Err(e) = webview.eval(&combined_script) {

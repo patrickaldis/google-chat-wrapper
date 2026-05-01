@@ -4,6 +4,7 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:webview:allow-set-webview-zoom",
     "notification:default",
     "notification:allow-is-permission-granted",
     "notification:allow-request-permission",
