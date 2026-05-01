@@ -1,7 +1,17 @@
 use tauri::{AppHandle, Manager};
+use tauri_plugin_notification::NotificationExt;
 
 use crate::badge;
 use crate::tray::TrayState;
+
+/// Called from JavaScript to send a native desktop notification, bypassing
+/// the Tauri notification JS plugin which may silently fail.
+#[tauri::command]
+pub fn send_notification(app: AppHandle, title: String, body: String) {
+    if let Err(e) = app.notification().builder().title(&title).body(&body).show() {
+        eprintln!("failed to send notification: {e}");
+    }
+}
 
 /// Called from JavaScript whenever the unread count changes (detected by
 /// polling the page title or sidebar DOM badges).

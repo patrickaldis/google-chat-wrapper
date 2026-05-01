@@ -22,16 +22,25 @@
 
     // --- Notification bridge ---------------------------------------------------
 
-    var OriginalNotification = window.Notification;
+    // Override the browser Notification API to forward notifications to the
+    // native OS via Tauri's notification plugin. We do NOT call the original
+    // Notification constructor because WebKitGTK doesn't support web
+    // notifications — calling it would cause Google Chat to detect a failure
+    // and retry in a tight loop.
 
     window.Notification = function(title, options) {
-        if (window.__TAURI__ && window.__TAURI__.notification) {
-            window.__TAURI__.notification.sendNotification({
+        // Send via our Rust command which calls the notification plugin from
+        // the Rust side — the JS plugin API silently fails on some setups.
+        if (window.__TAURI__ && window.__TAURI__.core) {
+            window.__TAURI__.core.invoke('send_notification', {
                 title: title,
                 body: options?.body || '',
             });
         }
-        return new OriginalNotification(title, options);
+        // Return a minimal stub so callers don't crash.
+        this.title = title;
+        this.body = options?.body || '';
+        this.close = function() {};
     };
 
     window.Notification.requestPermission = function() {

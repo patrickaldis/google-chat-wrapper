@@ -27,7 +27,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![commands::update_unread_count])
+        .invoke_handler(tauri::generate_handler![commands::update_unread_count, commands::send_notification])
         .setup(move |app| {
             window::create(app, badge_attr.as_deref())?;
             tray::setup(app)?;
