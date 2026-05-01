@@ -50,6 +50,7 @@
           gst_all_1.gst-plugins-good
           librsvg
           libappindicator-gtk3
+          dbus
         ];
 
         # Filter source to include Rust files plus Tauri-specific assets

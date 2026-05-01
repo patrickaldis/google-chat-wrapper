@@ -18,13 +18,36 @@ fn load_base_icon() -> RgbaImage {
         .to_rgba8()
 }
 
+/// Raw rendered icon data (RGBA pixels).
+pub struct RenderedIcon {
+    pub rgba: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl RenderedIcon {
+    /// Convert to a ksni Icon (ARGB32, network byte order).
+    pub fn to_ksni_icon(&self) -> ksni::Icon {
+        let mut argb = self.rgba.clone();
+        // Rotate each pixel from RGBA to ARGB.
+        for pixel in argb.chunks_exact_mut(4) {
+            pixel.rotate_right(1);
+        }
+        ksni::Icon {
+            width: self.width as i32,
+            height: self.height as i32,
+            data: argb,
+        }
+    }
+}
+
 /// Render the application icon, optionally with an unread-count badge in the
 /// bottom-right corner.
 ///
 /// - `count == 0`: returns the plain base icon.
 /// - `count > 0`:  returns the base icon with a red circle + white number.
 /// - counts above 99 are displayed as "99+".
-pub fn render(count: u32) -> tauri::image::Image<'static> {
+pub fn render(count: u32) -> RenderedIcon {
     let mut icon = load_base_icon();
     let (width, height) = (icon.width(), icon.height());
 
@@ -32,7 +55,11 @@ pub fn render(count: u32) -> tauri::image::Image<'static> {
         draw_badge(&mut icon, count);
     }
 
-    tauri::image::Image::new_owned(icon.into_raw(), width, height)
+    RenderedIcon {
+        rgba: icon.into_raw(),
+        width,
+        height,
+    }
 }
 
 /// Draw a red badge circle with a white count in the bottom-right corner.
