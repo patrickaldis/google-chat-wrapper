@@ -14,9 +14,12 @@ const NOTIFICATION_SCRIPT: &str = include_str!("notifications.js");
 /// via DOM scraping is disabled and only the page-title signal is used.
 /// Configurable via the `--badge-attr` CLI flag.
 ///
+/// When `background` is true the window is created hidden so the app starts
+/// in the system tray only.  The user can reveal it via the tray icon.
+///
 /// The notification-bridging script is injected after every page load so it
 /// survives SPA navigations and redirects within chat.google.com.
-pub fn create(app: &tauri::App, badge_attr: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn create(app: &tauri::App, badge_attr: Option<&str>, background: bool) -> Result<(), Box<dyn std::error::Error>> {
     let url = GOOGLE_CHAT_URL
         .parse()
         .expect("hardcoded Google Chat URL is invalid");
@@ -35,6 +38,7 @@ pub fn create(app: &tauri::App, badge_attr: Option<&str>) -> Result<(), Box<dyn 
         .min_inner_size(800.0, 600.0)
         .resizable(true)
         .decorations(false)
+        .visible(!background)
         .zoom_hotkeys_enabled(true)
         .on_page_load(move |webview, payload| {
             if payload.event() == PageLoadEvent::Finished {

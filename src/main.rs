@@ -7,29 +7,52 @@ mod window;
 
 use tauri::WindowEvent;
 
-/// Parse `--badge-attr <value>` from the command-line arguments.
-/// Returns `None` if the flag is not provided.
-fn parse_badge_attr() -> Option<String> {
+/// Parsed command-line arguments.
+struct CliArgs {
+    /// Optional HTML attribute name for DOM-based unread badge detection.
+    badge_attr: Option<String>,
+    /// When true, start with the window hidden (tray-only).
+    background: bool,
+}
+
+/// Parse command-line arguments.
+fn parse_args() -> CliArgs {
     let args: Vec<String> = std::env::args().collect();
-    for i in 0..args.len() {
-        if args[i] == "--badge-attr" {
-            if let Some(val) = args.get(i + 1) {
-                return Some(val.clone());
+    let mut badge_attr = None;
+    let mut background = false;
+
+    let mut i = 1; // skip the binary name
+    while i < args.len() {
+        match args[i].as_str() {
+            "--badge-attr" => {
+                if let Some(val) = args.get(i + 1) {
+                    badge_attr = Some(val.clone());
+                    i += 1;
+                }
             }
+            "--background" => {
+                background = true;
+            }
+            _ => {}
         }
+        i += 1;
     }
-    None
+
+    CliArgs {
+        badge_attr,
+        background,
+    }
 }
 
 fn main() {
-    let badge_attr = parse_badge_attr();
+    let cli = parse_args();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![commands::update_unread_count, commands::send_notification])
         .setup(move |app| {
-            window::create(app, badge_attr.as_deref())?;
+            window::create(app, cli.badge_attr.as_deref(), cli.background)?;
             tray::setup(app)?;
             Ok(())
         })
